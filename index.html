@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>포켓몬 페널티킥 — UI/터치/껍질 개선판</title>
+  <title>포켓몬 페널티킥 — UI/터치/껍질 개선판 (최적화)</title>
   <style>
     :root{
       --field:#2e7d32;
@@ -88,7 +88,7 @@
     .keeper .leg.right{right:24px}
 
     /* Shell: 몸 앞에 나오도록 z-index 높임 (머리/눈은 더 위) */
-    .keeper .shell{position:absolute;left:50%;top:28px;width:74px;height:66px;transform:translateX(-50%);background:#8d6e63;border:4px solid #5d4037;border-radius:44px/36px;box-shadow:inset 0 0 0 10px #bcaaa4;overflow:visible;z-index:var(--z-keeper-shell);display:flex;align-items:center;justify-content:center}
+    .keeper .shell{position:absolute;left:50%;top:28px;width:74px;height:66px;transform:translateX(-50%);background:#8d6e63;border:4px solid #5d4037;border-radius:44px/36px;box-shadow:inset 0 0 0 10px #bcaaa4;overflow:visible;z-index:var(--z-keeper-shell);display:flex;align-items:center;justify-content:center;pointer-events:none}
     .keeper .shell .panel{position:absolute;inset:8px;border-radius:34px/28px;overflow:hidden;background:
       linear-gradient(90deg,rgba(0,0,0,0.06) 0 2px,transparent 2px 100%),
       linear-gradient(0deg,rgba(255,255,255,0.03) 0 2px,transparent 2px 100%),
@@ -136,11 +136,7 @@
 
     @media (max-width:720px){table.top10{width:94%}}
 
-    /* Mobile portrait tweaks:
-       - aim UI 조금 축소 (너무 크다고 하셨으므로)
-       - aim 높이를 줄여서 아래 셀이 공과 겹치지 않게 함
-       - 공은 더 아래에 위치시켜 항상 보이도록 (터치 가능)
-       - mobile에서 aim의 z-index는 필요하면 올리지만, 우리는 대신 aim 크기 조정으로 공 가림 제거 */
+    /* Mobile portrait tweaks: */
     @media (max-width:540px) and (orientation:portrait){
       :root{
         --goalLeft:8%;
@@ -176,7 +172,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>포켓몬 페널티킥 — 개선판</h1><br>
+    <h1>포켓몬 페널티킥 — 개선판 (최적화)</h1><br>
     <p class="tip">PC : 방향키로 방향 고정 후 Space바 슛팅</p>
     <p class="tip">스마트기기 : 조준(터치) 후 몬스터볼(터치)</p>
     <p class="tip">학번 입력 → Start 클릭 → 기록경신</p><br>
@@ -225,7 +221,7 @@
 
       <div class="aim" id="aimGrid" role="group" aria-label="조준 그리드"></div>
 
-      <div class="message" id="msg" aria-live="polite"></div>
+      <div class="message" id="msg" aria-live="polite" aria-atomic="true"></div>
     </div>
 
     <div class="bottomTableWrap" style="margin-top:20px;">
@@ -260,7 +256,7 @@
     initializeApp(firebaseConfig);
     const db = getFirestore();
 
-    /* ========== 게임 로직 (원본 흐름 유지, targetSelected 고정 등 기존 버그 수정 반영) ========== */
+    /* ========== 게임 로직 (원본 흐름 유지, 최적화 반영) ========== */
     (() => {
       const arena = document.getElementById('arena');
       const keeper = document.getElementById('keeper');
@@ -285,6 +281,7 @@
         c.setAttribute('tabindex', '0');
         c.setAttribute('role', 'button');
         c.setAttribute('aria-label', dirNames[i]);
+        c.setAttribute('aria-pressed', 'false');
         aimGrid.appendChild(c);
         cells.push(c);
       }
@@ -292,7 +289,16 @@
       let selected = 4, streak = 0, busy = false, msgTimer = null;
       let started = false, studentId = null, bestScore = 0;
 
-      function updateAimHighlight() { cells.forEach(el => el.classList.toggle('active', +el.dataset.dir === selected)); aimLabel.textContent = dirNames[selected]; }
+      // 업데이트된 접근성 친화적 highlight 함수
+      function updateAimHighlight() {
+        cells.forEach(el => {
+          const is = +el.dataset.dir === selected;
+          el.classList.toggle('active', is);
+          el.setAttribute('aria-pressed', is ? 'true' : 'false');
+          if (is) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current');
+        });
+        aimLabel.textContent = dirNames[selected];
+      }
       updateAimHighlight();
 
       function showMessage(text, type) { msg.textContent = text; msg.className = 'message show' + (type ? ' ' + type : ''); if (msgTimer) clearTimeout(msgTimer); msgTimer = setTimeout(() => { msg.classList.remove('show'); msgTimer = null; }, 1300); }
@@ -304,7 +310,7 @@
 
       function animateBall(sx, sy, tx, ty, dur, done) { const start = performance.now(); function step(now) { const t = Math.min(1, (now - start) / dur); const ease = t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t; const x = sx + (tx - sx) * ease; const y = sy + (ty - sy) * ease - 40 * Math.sin(Math.PI * t); ball.style.transform = `translate(${x - sx}px, ${y - sy}px)`; if (t < 1) requestAnimationFrame(step); else done && done(); } requestAnimationFrame(step); }
 
-      function randomOther(except) { const pool = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(n => n !== except); return pool[Math.floor(Math.random() * pool.length)]; }
+      function randomOther(except) { const pool = [0,1,2,3,4,5,6,7,8].filter(n => n !== except); return pool[Math.floor(Math.random() * pool.length)]; }
 
       async function shoot() {
         if (busy) return;
@@ -369,7 +375,7 @@
       function isShootKey(e) { return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar'; }
       function handleKey(e) {
         if (busy) return;
-        if ((e.key && e.key.startsWith && e.key.startsWith('Arrow') && e.repeat)) { e.preventDefault(); return; }
+        // 화살표는 keydown마다 처리 (repeat 허용)
         if (e.key === 'ArrowLeft') { gridMove(-1, 0); e.preventDefault(); return; }
         if (e.key === 'ArrowRight') { gridMove(1, 0); e.preventDefault(); return; }
         if (e.key === 'ArrowUp') { gridMove(0, -1); e.preventDefault(); return; }
@@ -381,7 +387,7 @@
 
       cells.forEach((cell, i) => {
         cell.addEventListener('mouseenter', () => { selected = i; updateAimHighlight(); });
-        cell.addEventListener('pointerdown', (e) => { e.preventDefault(); selected = i; updateAimHighlight(); }, { passive: false });
+        cell.addEventListener('pointerdown', (e) => { e.preventDefault(); selected = i; updateAimHighlight(); cell.focus(); }, { passive: false });
         cell.addEventListener('click', () => { selected = i; updateAimHighlight(); });
         cell.addEventListener('keydown', (e) => { if (e.key === 'Enter' || isShootKey(e)) { e.preventDefault(); selected = i; updateAimHighlight(); if (!busy && started) shoot(); } });
       });
@@ -488,11 +494,7 @@
           rows.push({ id: docSnap.id, high: (typeof data.high === 'number') ? data.high : 0 });
         });
         top10Body.innerHTML = rows.map((r, i) => {
-          return `<tr>
-        <td class="rankCell">${i + 1}</td>
-        <td class="idCell">${r.id}</td>
-        <td class="scoreCell">${r.high}</td>
-      </tr>`;
+          return `<tr>\n        <td class="rankCell">${i + 1}</td>\n        <td class="idCell">${r.id}</td>\n        <td class="scoreCell">${r.high}</td>\n      </tr>`;
         }).join('');
       }, (err) => {
         console.error('Top20 onSnapshot error', err);
