@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>포켓몬 페널티킥 v2</title>
+  <title>포켓몬 페널티킥 — UI/터치/껍질 개선판</title>
   <style>
     :root{
       --field:#2e7d32;
@@ -20,10 +20,25 @@
       --aimInnerPad:12px;
       --msgW:168px;
       --msgH:22px;
-      --accent:#00bcd4;
+
+      /* z-index helpers */
+      --z-aim:5;
+      --z-ball:40;
+      --z-keeper-head:30;
+      --z-keeper-eye:35;
+      --z-keeper-shell:18; /* shell in front of belly/torso but behind head/eyes */
+      --z-keeper-body:8;
+      --z-kicker:22;
     }
+
     *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;background:#0f1416;color:#f1f1f1;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;
+      background:#0f1416;color:#f1f1f1;display:flex;flex-direction:column;align-items:center;
+      min-height:100vh;padding:20px;
+    }
+
     .wrap{width:min(980px,96vw)}
     h1{margin:8px 0 6px;font-size:clamp(20px,3.2vw,28px);text-align:center}
     .tip{margin:0 0 10px;text-align:center;color:#cfd8dc;font-size:14px}
@@ -31,67 +46,77 @@
     .badge{padding:6px 10px;border-radius:999px;background:#263238;color:#e0f2f1;font-weight:700;font-size:14px;box-shadow:0 2px 8px #0006}
     .controls{display:flex;gap:8px;align-items:center}
     .input{background:#37474f;border:1px solid #263238;padding:6px 8px;border-radius:8px;color:#e0f2f1;width:120px;text-align:center}
-    .btn{background:var(--accent);color:#042024;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;border:none}
+    .btn{background:var(--accent,#00bcd4);color:#042024;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;border:none}
     .btn[disabled]{opacity:.5;cursor:not-allowed}
 
-    .arena{position:relative;aspect-ratio:16/9;width:100%;background:linear-gradient(#2e7d32,#1b5e20);border-radius:16px;overflow:hidden;box-shadow:0 10px 30px #0009;touch-action:none}
+    .arena{
+      position:relative;
+      aspect-ratio:16/9;
+      width:100%;
+      background:linear-gradient(#2e7d32,#1b5e20);
+      border-radius:16px;overflow:hidden;box-shadow:0 10px 30px #0009;
+      touch-action:none;
+    }
 
-    .goal{position:absolute;left:var(--goalLeft);right:var(--goalRight);top:var(--goalTop);height:var(--goalHeight);border:10px solid var(--goal);border-bottom:none;border-radius:14px 14px 0 0;background:
-      repeating-linear-gradient(90deg,var(--net) 0 2px,transparent 2px 18px),
-      repeating-linear-gradient(0deg,var(--net) 0 2px,transparent 2px 18px)}
+    .goal{
+      position:absolute;left:var(--goalLeft);right:var(--goalRight);top:var(--goalTop);height:var(--goalHeight);
+      border:10px solid var(--goal);border-bottom:none;border-radius:14px 14px 0 0;
+      background:repeating-linear-gradient(90deg,var(--net) 0 2px,transparent 2px 18px),repeating-linear-gradient(0deg,var(--net) 0 2px,transparent 2px 18px);
+    }
 
     .line{position:absolute;inset:auto 8% 15% 8%;border:2px solid var(--line);border-top:none;border-radius:0 0 14px 14px}
     .spot{position:absolute;left:50%;bottom:13.8%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--line)}
 
-    /* keeper (꼬부기) — 눈 우선순위 보정 포함 */
+    /* Keeper - z-index 정렬 (눈>머리>shell>body) */
     .keeper{position:absolute;left:50%;width:96px;height:106px;transform:translateX(-50%);animation:idle 1.05s ease-in-out infinite alternate;z-index:12;will-change:transform;overflow:visible}
     @keyframes idle{from{transform:translateX(-52%)}to{transform:translateX(-48%)}}
 
-    .keeper .head{position:absolute;left:50%;top:6px;width:76px;height:62px;transform:translateX(-50%);background:#4fc3f7;border:3px solid #0288d1;border-radius:44px;z-index:14;overflow:visible}
-    /* 눈을 항상 최상위로 */
-    .keeper .eye{position:absolute;top:20px;width:14px;height:18px;background:#fff;border:2px solid #1b1b1b;border-radius:10px;z-index:30;display:block}
+    .keeper .head{position:absolute;left:50%;top:6px;width:76px;height:62px;transform:translateX(-50%);background:#4fc3f7;border:3px solid #0288d1;border-radius:44px;z-index:var(--z-keeper-head);overflow:visible}
+    .keeper .eye{position:absolute;top:20px;width:14px;height:18px;background:#fff;border:2px solid #1b1b1b;border-radius:10px;z-index:var(--z-keeper-eye);display:block}
     .keeper .eye.left{left:12px}
     .keeper .eye.right{right:12px}
-    .keeper .pupil{position:absolute;left:50%;top:50%;width:8px;height:10px;transform:translate(-50%,-35%);background:#1b1b1b;border-radius:6px;z-index:32}
+    .keeper .pupil{position:absolute;left:50%;top:50%;width:8px;height:10px;transform:translate(-50%,-35%);background:#1b1b1b;border-radius:6px;z-index:calc(var(--z-keeper-eye)+1)}
 
-    .keeper .torso{position:absolute;left:50%;top:36px;width:72px;height:56px;transform:translateX(-50%);background:#4fc3f7;border:3px solid #0288d1;border-radius:36px;box-shadow:0 6px 12px var(--shadow);z-index:6}
-    .keeper .belly{position:absolute;left:50%;top:48px;width:48px;height:36px;transform:translateX(-50%);background:#ffe0b2;border:3px solid #efcc96;border-radius:40px/30px;z-index:8}
-    .keeper .arm{position:absolute;top:62px;width:18px;height:26px;background:#4fc3f7;border:3px solid #0288d1;border-radius:12px;z-index:16}
+    .keeper .torso{position:absolute;left:50%;top:36px;width:72px;height:56px;transform:translateX(-50%);background:#4fc3f7;border:3px solid #0288d1;border-radius:36px;box-shadow:0 6px 12px var(--shadow);z-index:var(--z-keeper-body)}
+    .keeper .belly{position:absolute;left:50%;top:48px;width:48px;height:36px;transform:translateX(-50%);background:#ffe0b2;border:3px solid #efcc96;border-radius:40px/30px;z-index:calc(var(--z-keeper-body)+1)}
+
+    .keeper .arm{position:absolute;top:62px;width:18px;height:26px;background:#4fc3f7;border:3px solid #0288d1;border-radius:12px;z-index:10}
     .keeper .arm.left{left:2px;transform:rotate(-14deg)}
     .keeper .arm.right{right:2px;transform:rotate(14deg)}
-    .keeper .leg{position:absolute;bottom:6px;width:20px;height:16px;background:#4fc3f7;border:3px solid #0288d1;border-radius:12px;z-index:16}
+    .keeper .leg{position:absolute;bottom:6px;width:20px;height:16px;background:#4fc3f7;border:3px solid #0288d1;border-radius:12px;z-index:10}
     .keeper .leg.left{left:24px}
     .keeper .leg.right{right:24px}
 
-    .keeper .shell{position:absolute;left:50%;top:28px;width:74px;height:66px;transform:translateX(-50%);background:#8d6e63;border:4px solid #5d4037;border-radius:44px/36px;box-shadow:inset 0 0 0 10px #bcaaa4;overflow:visible;z-index:7;display:flex;align-items:center;justify-content:center}
+    /* Shell: 몸 앞에 나오도록 z-index 높임 (머리/눈은 더 위) */
+    .keeper .shell{position:absolute;left:50%;top:28px;width:74px;height:66px;transform:translateX(-50%);background:#8d6e63;border:4px solid #5d4037;border-radius:44px/36px;box-shadow:inset 0 0 0 10px #bcaaa4;overflow:visible;z-index:var(--z-keeper-shell);display:flex;align-items:center;justify-content:center}
     .keeper .shell .panel{position:absolute;inset:8px;border-radius:34px/28px;overflow:hidden;background:
       linear-gradient(90deg,rgba(0,0,0,0.06) 0 2px,transparent 2px 100%),
       linear-gradient(0deg,rgba(255,255,255,0.03) 0 2px,transparent 2px 100%),
       linear-gradient(90deg,rgba(122,94,85,0.10) 0 1px,transparent 1px),
-      linear-gradient(0deg,rgba(122,94,85,0.10) 0 1px,transparent 1px);background-size:28px 100%,100% 18px,12px 100%,100% 12px;z-index:7}
+      linear-gradient(0deg,rgba(122,94,85,0.10) 0 1px,transparent 1px);background-size:28px 100%,100% 18px,12px 100%,100% 12px;z-index:var(--z-keeper-shell)}
     .keeper .panel::before{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 3px 6px rgba(0,0,0,0.15),inset 0 -3px 6px rgba(255,255,255,0.03);pointer-events:none}
 
-    /* kicker (피카츄) */
-    .kicker{position:absolute;left:50%;bottom:10%;width:84px;height:84px;transform:translateX(-50%);z-index:22;pointer-events:none}
-    .kicker .body{position:absolute;inset:0;border-radius:50%;background:#ffd600;border:3px solid #ffb300;box-shadow:0 6px 12px var(--shadow);z-index:23}
-    .kicker .ear{position:absolute;width:20px;height:36px;background:#ffd600;border:3px solid #ffb300;border-bottom:none;top:-20px;border-radius:10px 10px 0 0;transform-origin:bottom center;z-index:24}
+    /* Kicker (피카츄) */
+    .kicker{position:absolute;left:50%;bottom:10%;width:84px;height:84px;transform:translateX(-50%);z-index:var(--z-kicker);pointer-events:none}
+    .kicker .body{position:absolute;inset:0;border-radius:50%;background:#ffd600;border:3px solid #ffb300;box-shadow:0 6px 12px var(--shadow);z-index:calc(var(--z-kicker)+1)}
+    .kicker .ear{position:absolute;width:20px;height:36px;background:#ffd600;border:3px solid #ffb300;border-bottom:none;top:-20px;border-radius:10px 10px 0 0;transform-origin:bottom center;z-index:calc(var(--z-kicker)+2)}
     .kicker .ear.left{left:12px;transform:rotate(-14deg)}
     .kicker .ear.right{right:12px;transform:rotate(14deg)}
-    .kicker .ear:after{content:"";position:absolute;inset:0;height:14px;background:#1b1b1b;border-radius:10px 10px 0 0;z-index:25}
+    .kicker .ear:after{content:"";position:absolute;inset:0;height:14px;background:#1b1b1b;border-radius:10px 10px 0 0;z-index:calc(var(--z-kicker)+3)}
     .kicker.shoot .body{animation:bump .18s ease}
     @keyframes bump{50%{transform:scale(.95)}}
 
-    /* ball */
-    .ball{--d:40px;position:absolute;left:50%;bottom:14%;width:var(--d);height:var(--d);margin-left:calc(var(--d)/-2);border-radius:50%;overflow:visible;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 14px rgba(0,0,0,0.5);z-index:20;touch-action:manipulation}
+    /* Ball (몬스터볼) - 항상 충분히 위에 보이게 */
+    .ball{--d:40px;position:absolute;left:50%;bottom:14%;width:var(--d);height:var(--d);margin-left:calc(var(--d)/-2);border-radius:50%;overflow:visible;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 14px rgba(0,0,0,0.5);z-index:var(--z-ball);touch-action:manipulation}
     .ball .shell{position:relative;width:88%;height:88%;border-radius:50%;background:linear-gradient(to bottom,#e53935 0%,#e53935 50%,#ffffff 50%,#f7f7f7 100%);border:3px solid #111;box-shadow:inset 0 -4px 10px rgba(0,0,0,0.12)}
     .ball .band{position:absolute;left:7%;right:7%;top:46%;height:14%;transform:translateY(-50%);background:#000;border-radius:3px}
     .ball .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34%;height:34%;border-radius:50%;background:#fff;border:4px solid #111;box-shadow:0 2px 6px rgba(0,0,0,0.6)}
     .ball .shine{position:absolute;left:22%;top:14%;width:26%;height:20%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.95) 0 40%,transparent 41% 100%);border-radius:50%;opacity:0.95}
 
-    /* aim 기본 z-index는 낮게(=5) — 모바일에서만 올림 */
-    .aim{position:absolute;left:var(--goalLeft);right:var(--goalRight);top:var(--goalTop);height:var(--goalHeight);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;pointer-events:auto;padding:var(--aimInnerPad);z-index:5}
+    /* Aim grid - 기본적으로 낮은 z-index (PC에서 피카츄/꼬부기 가리지 않음) */
+    .aim{position:absolute;left:var(--goalLeft);right:var(--goalRight);top:var(--goalTop);height:var(--goalHeight);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;pointer-events:auto;padding:var(--aimInnerPad);z-index:var(--z-aim)}
     .aim .cell{border:2px dashed var(--arrow);border-radius:8px;position:relative;cursor:pointer;border-color:var(--arrow-active);box-shadow:0 0 0 3px #4e050533 inset;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;touch-action:manipulation;min-height:48px;min-width:48px}
-    .aim .cell.active{border-color:var(--accent);box-shadow:0 0 0 6px var(--accent)22,0 0 0 3px #ffffff22 inset}
+    .aim .cell.active{border-color:var(--accent,#00bcd4);box-shadow:0 0 0 6px var(--accent,#00bcd4)22,0 0 0 3px #ffffff22 inset}
     .aim .cell::after{content:"•";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:900;color:#b40606bb;font-size:16px}
     .aim .cell[data-dir="0"]::after{content:"↖"} .aim .cell[data-dir="1"]::after{content:"↑"} .aim .cell[data-dir="2"]::after{content:"↗"}
     .aim .cell[data-dir="3"]::after{content:"←"} .aim .cell[data-dir="4"]::after{content:"•"} .aim .cell[data-dir="5"]::after{content:"→"}
@@ -111,23 +136,47 @@
 
     @media (max-width:720px){table.top10{width:94%}}
 
-    /* 모바일 포트레이트에서 aim을 최상위로 올리는 미디어쿼리(터치 보장) */
+    /* Mobile portrait tweaks:
+       - aim UI 조금 축소 (너무 크다고 하셨으므로)
+       - aim 높이를 줄여서 아래 셀이 공과 겹치지 않게 함
+       - 공은 더 아래에 위치시켜 항상 보이도록 (터치 가능)
+       - mobile에서 aim의 z-index는 필요하면 올리지만, 우리는 대신 aim 크기 조정으로 공 가림 제거 */
     @media (max-width:540px) and (orientation:portrait){
-      :root{--goalLeft:8%;--goalRight:8%;--goalTop:4%;--goalHeight:42%;--aimInnerPad:20px;--msgW:140px;--msgH:20px}
-      .keeper{width:68px;height:86px}
-      .keeper .head{width:56px;height:46px;top:4px;z-index:14}
-      .keeper .shell{width:54px;height:48px;top:26px;z-index:10}
-      .kicker{width:64px;height:64px;bottom:6%}
-      .ball{--d:36px;bottom:6%;z-index:20}
-      .aim{z-index:80}
-      .aim .cell{min-height:52px;min-width:52px}
-      #arena .message{top:calc(var(--goalTop) + var(--goalHeight) + 1%)}
+      :root{
+        --goalLeft:8%;
+        --goalRight:8%;
+        --goalTop:4%;
+        --goalHeight:40%; /* 약간 줄여서 전체 aim 그리드 높이 감소 */
+        --aimInnerPad:10px; /* padding을 작게 */
+        --msgW:140px;
+        --msgH:20px;
+        --z-aim:12; /* 약간 올리되 과도하지 않게 */
+        --z-ball:42; /* 공은 그래도 눈에 띄도록 높게 유지 */
+      }
+
+      /* keeper 축소 보정 */
+      .keeper{width:72px;height:96px}
+      .keeper .head{width:60px;height:50px;top:4px}
+      .keeper .shell{width:56px;height:48px;top:28px;z-index:var(--z-keeper-shell)}
+      .keeper .arm,.keeper .leg{z-index:10}
+
+      /* kicker 약간 축소 */
+      .kicker{width:64px;height:64px;bottom:8%}
+      .kicker .body{z-index:var(--z-kicker)}
+
+      /* ball을 더 아래에 배치해서 aim 하단 셀과 겹치지 않도록 (세로 모드에서 보이지 않던 문제 해결) */
+      .ball{--d:36px;bottom:4%;margin-left:calc(var(--d)/-2);z-index:var(--z-ball)}
+
+      /* aim 셀 최소 크기는 유지하되 내부 패딩 줄여 UI가 너무 커보이지 않게 */
+      .aim{height:calc(var(--goalHeight) * 0.88); padding:var(--aimInnerPad)}
+      .aim .cell{min-height:44px;min-width:44px}
+      .aim .cell::after{font-size:15px}
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>포켓몬 페널티킥 — 눈 복구판</h1><br>
+    <h1>포켓몬 페널티킥 — 개선판</h1><br>
     <p class="tip">PC : 방향키로 방향 고정 후 Space바 슛팅</p>
     <p class="tip">스마트기기 : 조준(터치) 후 몬스터볼(터치)</p>
     <p class="tip">학번 입력 → Start 클릭 → 기록경신</p><br>
@@ -175,26 +224,44 @@
       </div>
 
       <div class="aim" id="aimGrid" role="group" aria-label="조준 그리드"></div>
+
       <div class="message" id="msg" aria-live="polite"></div>
     </div>
 
     <div class="bottomTableWrap" style="margin-top:20px;">
       <table class="top10" id="top10Table" aria-live="polite">
-        <thead><tr><th class="rank">순위</th><th class="id">학번</th><th class="score">연속골</th></tr></thead>
-        <tbody id="top10Body"><tr class="empty"><td colspan="3">로딩 중...</td></tr></tbody>
+        <thead>
+          <tr><th class="rank">순위</th><th class="id">학번</th><th class="score">연속골</th></tr>
+        </thead>
+        <tbody id="top10Body">
+          <tr class="empty"><td colspan="3">로딩 중...</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 
   <script type="module">
+    /* Firebase modular SDK (Firestore) */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, limit, onSnapshot, doc, getDoc, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    import {
+      getFirestore, collection, query, orderBy, limit, onSnapshot,
+      doc, getDoc, runTransaction, setDoc
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyCzF6CGY4PcDrnQ9gInEPJsQI-ctpwupUM", authDomain: "pkgame-7464c.firebaseapp.com", projectId: "pkgame-7464c", storageBucket: "pkgame-7464c.firebasestorage.app", messagingSenderId: "332773265897", appId: "1:332773265897:web:7abb782f55daa85a073b78", measurementId: "G-398N8VPTMQ" };
+    const firebaseConfig = {
+      apiKey: "AIzaSyCzF6CGY4PcDrnQ9gInEPJsQI-ctpwupUM",
+      authDomain: "pkgame-7464c.firebaseapp.com",
+      projectId: "pkgame-7464c",
+      storageBucket: "pkgame-7464c.firebasestorage.app",
+      messagingSenderId: "332773265897",
+      appId: "1:332773265897:web:7abb782f55daa85a073b78",
+      measurementId: "G-398N8VPTMQ"
+    };
     initializeApp(firebaseConfig);
     const db = getFirestore();
 
-    (function(){
+    /* ========== 게임 로직 (원본 흐름 유지, targetSelected 고정 등 기존 버그 수정 반영) ========== */
+    (() => {
       const arena = document.getElementById('arena');
       const keeper = document.getElementById('keeper');
       const kicker = document.getElementById('kicker');
@@ -203,161 +270,238 @@
       const streakEl = document.getElementById('streak');
       const aimLabel = document.getElementById('aimLabel');
       const aimGrid = document.getElementById('aimGrid');
+
       const studentInput = document.getElementById('studentId');
       const startBtn = document.getElementById('startBtn');
       const bestEl = document.getElementById('best');
 
-      const dirNames = ["↖ (왼-상)","↑ (가-상)","↗ (우-상)","← (왼-가)","• (가운데)","→ (우-가)","↙ (왼-하)","↓ (가-하)","↘ (우-하)"];
+      // 셀 생성
+      const dirNames = ["↖ (왼-상)", "↑ (가-상)", "↗ (우-상)", "← (왼-가)", "• (가운데)", "→ (우-가)", "↙ (왼-하)", "↓ (가-하)", "↘ (우-하)"];
       const cells = [];
-      for(let i=0;i<9;i++){ const c=document.createElement('div'); c.className='cell'; c.dataset.dir=i; c.setAttribute('tabindex','0'); c.setAttribute('role','button'); c.setAttribute('aria-label',dirNames[i]); aimGrid.appendChild(c); cells.push(c); }
+      for (let i = 0; i < 9; i++) {
+        const c = document.createElement('div');
+        c.className = 'cell';
+        c.dataset.dir = i;
+        c.setAttribute('tabindex', '0');
+        c.setAttribute('role', 'button');
+        c.setAttribute('aria-label', dirNames[i]);
+        aimGrid.appendChild(c);
+        cells.push(c);
+      }
 
-      let selected=4,streak=0,busy=false,msgTimer=null;
-      let started=false,studentId=null,bestScore=0;
-      function updateAimHighlight(){cells.forEach(el=>el.classList.toggle('active',+el.dataset.dir===selected));aimLabel.textContent=dirNames[selected]}
+      let selected = 4, streak = 0, busy = false, msgTimer = null;
+      let started = false, studentId = null, bestScore = 0;
+
+      function updateAimHighlight() { cells.forEach(el => el.classList.toggle('active', +el.dataset.dir === selected)); aimLabel.textContent = dirNames[selected]; }
       updateAimHighlight();
-      function showMessage(text,type){msg.textContent=text;msg.className='message show'+(type? ' '+type:''); if(msgTimer) clearTimeout(msgTimer); msgTimer=setTimeout(()=>{msg.classList.remove('show');msgTimer=null},1300)}
-      function gridMove(dx,dy){const x=selected%3,y=Math.floor(selected/3);const nx=Math.min(2,Math.max(0,x+dx));const ny=Math.min(2,Math.max(0,y+dy));selected=(ny*3+nx)|0;updateAimHighlight()}
-      function placeKeeperHome(){const g=aimGrid.getBoundingClientRect();const a=arena.getBoundingClientRect();const kH=keeper.offsetHeight;const goalBottom=(g.top-a.top)+g.height;const topPx=goalBottom-kH+10;keeper.style.top=`${Math.round(topPx)}px`;keeper.style.transform='translateX(-50%)'}
-      window.addEventListener('resize',placeKeeperHome);setTimeout(placeKeeperHome,0);
 
-      function animateBall(sx,sy,tx,ty,dur,done){const start=performance.now();function step(now){const t=Math.min(1,(now-start)/dur);const ease=t<.5?2*t*t:-1+(4-2*t)*t;const x=sx+(tx-sx)*ease;const y=sy+(ty-sy)*ease-40*Math.sin(Math.PI*t);ball.style.transform=`translate(${x-sx}px, ${y-sy}px)`;if(t<1)requestAnimationFrame(step);else done&&done()}requestAnimationFrame(step)}
-      function randomOther(except){const pool=[0,1,2,3,4,5,6,7,8].filter(n=>n!==except);return pool[Math.floor(Math.random()*pool.length)]}
+      function showMessage(text, type) { msg.textContent = text; msg.className = 'message show' + (type ? ' ' + type : ''); if (msgTimer) clearTimeout(msgTimer); msgTimer = setTimeout(() => { msg.classList.remove('show'); msgTimer = null; }, 1300); }
 
-      async function shoot(){
-        if(busy) return;
-        busy=true;
-        kicker.classList.add('shoot');
+      function gridMove(dx, dy) { const x = selected % 3, y = Math.floor(selected / 3); const nx = Math.min(2, Math.max(0, x + dx)); const ny = Math.min(2, Math.max(0, y + dy)); selected = (ny * 3 + nx) | 0; updateAimHighlight(); }
+
+      function placeKeeperHome() { const g = aimGrid.getBoundingClientRect(); const a = arena.getBoundingClientRect(); const kH = keeper.offsetHeight; const goalBottom = (g.top - a.top) + g.height; const topPx = goalBottom - kH + 10; keeper.style.top = `${Math.round(topPx)}px`; keeper.style.transform = 'translateX(-50%)'; }
+      window.addEventListener('resize', placeKeeperHome); setTimeout(placeKeeperHome, 0);
+
+      function animateBall(sx, sy, tx, ty, dur, done) { const start = performance.now(); function step(now) { const t = Math.min(1, (now - start) / dur); const ease = t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t; const x = sx + (tx - sx) * ease; const y = sy + (ty - sy) * ease - 40 * Math.sin(Math.PI * t); ball.style.transform = `translate(${x - sx}px, ${y - sy}px)`; if (t < 1) requestAnimationFrame(step); else done && done(); } requestAnimationFrame(step); }
+
+      function randomOther(except) { const pool = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(n => n !== except); return pool[Math.floor(Math.random() * pool.length)]; }
+
+      async function shoot() {
+        if (busy) return;
+        busy = true; kicker.classList.add('shoot');
+
+        // targetSelected 고정 - 슛 시작 시점의 조준이 판정 기준
         const targetSelected = selected;
-        const goalRect=aimGrid.getBoundingClientRect(); const arenaRect=arena.getBoundingClientRect();
-        const col=targetSelected%3,row=Math.floor(targetSelected/3); const cellW=goalRect.width/3,cellH=goalRect.height/3;
-        const targetX=(goalRect.left-arenaRect.left)+col*cellW+cellW/2;
-        const targetY=(goalRect.top-arenaRect.top)+row*cellH+cellH/2;
-        const start=ball.getBoundingClientRect(); const sx=start.left-arenaRect.left+start.width/2; const sy=start.top-arenaRect.top+start.height/2;
+
+        const goalRect = aimGrid.getBoundingClientRect(); const arenaRect = arena.getBoundingClientRect();
+        const col = targetSelected % 3, row = Math.floor(targetSelected / 3); const cellW = goalRect.width / 3, cellH = goalRect.height / 3;
+        const targetX = (goalRect.left - arenaRect.left) + col * cellW + cellW / 2;
+        const targetY = (goalRect.top - arenaRect.top) + row * cellH + cellH / 2;
+        const start = ball.getBoundingClientRect(); const sx = start.left - arenaRect.left + start.width / 2; const sy = start.top - arenaRect.top + start.height / 2;
+
         const keeperPick = (Math.random() < 0.35) ? targetSelected : randomOther(targetSelected);
-        const kW=keeper.offsetWidth,kH=keeper.offsetHeight;
-        const kpCol=keeperPick%3,kpRow=Math.floor(keeperPick/3);
-        let kTargetX=(goalRect.left-arenaRect.left)+kpCol*cellW+cellW/2-kW/2;
-        let kTargetY=(goalRect.top-arenaRect.top)+kpRow*cellH+cellH/2-kH/2;
-        if(keeperPick!==targetSelected){
-          const dx=Math.sign(kpCol-col),dy=Math.sign(kpRow-row),offset=28;
-          kTargetX+=dx*offset;kTargetY+=dy*offset;
-          const gxMin=(goalRect.left-arenaRect.left)-kW*0.12;const gxMax=(goalRect.left-arenaRect.left)+goalRect.width-kW*0.88;
-          const gyMin=(goalRect.top-arenaRect.top)-kH*0.12;const gyMax=(goalRect.top-arenaRect.top)+goalRect.height-kH*0.88;
-          kTargetX=Math.max(gxMin,Math.min(gxMax,kTargetX));kTargetY=Math.max(gyMin,Math.min(gyMax,kTargetY));
+
+        const kW = keeper.offsetWidth, kH = keeper.offsetHeight;
+        const kpCol = keeperPick % 3, kpRow = Math.floor(keeperPick / 3);
+        let kTargetX = (goalRect.left - arenaRect.left) + kpCol * cellW + cellW / 2 - kW / 2;
+        let kTargetY = (goalRect.top - arenaRect.top) + kpRow * cellH + cellH / 2 - kH / 2;
+        if (keeperPick !== targetSelected) {
+          const dx = Math.sign(kpCol - col), dy = Math.sign(kpRow - row), offset = 28;
+          kTargetX += dx * offset; kTargetY += dy * offset;
+          const gxMin = (goalRect.left - arenaRect.left) - kW * 0.12; const gxMax = (goalRect.left - arenaRect.left) + goalRect.width - kW * 0.88;
+          const gyMin = (goalRect.top - arenaRect.top) - kH * 0.12; const gyMax = (goalRect.top - arenaRect.top) + goalRect.height - kH * 0.88;
+          kTargetX = Math.max(gxMin, Math.min(gxMax, kTargetX)); kTargetY = Math.max(gyMin, Math.min(gyMax, kTargetY));
         }
-        const keeperRect=keeper.getBoundingClientRect();
-        const startKX=keeperRect.left-arenaRect.left;const startKY=keeperRect.top-arenaRect.top;
-        const dxDive=Math.round(kTargetX-startKX);const dyDive=Math.round(kTargetY-startKY);
-        keeper.style.transition='transform .36s ease';keeper.style.animation='none';
-        requestAnimationFrame(()=>{keeper.style.transform=`translateX(-50%) translate(${dxDive}px, ${dyDive}px)`});
-        const dur=380;
-        animateBall(sx,sy,targetX,targetY,dur,async ()=>{
+
+        const keeperRect = keeper.getBoundingClientRect();
+        const startKX = keeperRect.left - arenaRect.left;
+        const startKY = keeperRect.top - arenaRect.top;
+        const dxDive = Math.round(kTargetX - startKX);
+        const dyDive = Math.round(kTargetY - startKY);
+
+        // Keep shell on top visually: add translate then restore
+        keeper.style.transition = 'transform .36s ease';
+        keeper.style.animation = 'none';
+        requestAnimationFrame(() => { keeper.style.transform = `translateX(-50%) translate(${dxDive}px, ${dyDive}px)`; });
+
+        const dur = 380;
+        animateBall(sx, sy, targetX, targetY, dur, async () => {
+          // 판정(targetSelected 기준)
           const saved = (keeperPick === targetSelected);
           if (saved) {
             streak = 0; streakEl.textContent = streak; showMessage('아쉽다! 막혔어요 ⚡️🥅', 'save');
           } else {
             streak++; streakEl.textContent = streak; showMessage(`${streak}번째 연속 골! 🎉`, 'goal');
             if (started && studentId) {
-              try { await tryUpdateHighScore(studentId, streak); } catch (err) { console.error('DB update error:', err); }
+              try {
+                await tryUpdateHighScore(studentId, streak);
+              } catch (err) {
+                console.error('DB update error:', err);
+              }
             }
           }
-          setTimeout(()=>{ kicker.classList.remove('shoot'); keeper.style.transition=''; keeper.style.animation=''; keeper.style.transform='translateX(-50%)'; placeKeeperHome(); ball.style.transition='transform .22s ease'; ball.style.transform='translate(0,0)'; setTimeout(()=>{ ball.style.transition=''; busy=false },240); },200);
+
+          setTimeout(() => { kicker.classList.remove('shoot'); keeper.style.transition = ''; keeper.style.animation = ''; keeper.style.transform = 'translateX(-50%)'; placeKeeperHome(); ball.style.transition = 'transform .22s ease'; ball.style.transform = 'translate(0,0)'; setTimeout(() => { ball.style.transition = ''; busy = false; }, 240); }, 200);
         });
       }
 
-      function isShootKey(e){ return e.code==='Space' || e.key===' ' || e.key==='Spacebar' }
-      function handleKey(e){
-        if(busy) return;
-        if((e.key && e.key.startsWith && e.key.startsWith('Arrow') && e.repeat)){ e.preventDefault(); return }
-        if(e.key==='ArrowLeft'){ gridMove(-1,0); e.preventDefault(); return }
-        if(e.key==='ArrowRight'){ gridMove(1,0); e.preventDefault(); return }
-        if(e.key==='ArrowUp'){ gridMove(0,-1); e.preventDefault(); return }
-        if(e.key==='ArrowDown'){ gridMove(0,1); e.preventDefault(); return }
-        if(isShootKey(e) || e.key==='Enter'){ e.preventDefault(); if(started) shoot() }
+      // 키/셀 이벤트
+      function isShootKey(e) { return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar'; }
+      function handleKey(e) {
+        if (busy) return;
+        if ((e.key && e.key.startsWith && e.key.startsWith('Arrow') && e.repeat)) { e.preventDefault(); return; }
+        if (e.key === 'ArrowLeft') { gridMove(-1, 0); e.preventDefault(); return; }
+        if (e.key === 'ArrowRight') { gridMove(1, 0); e.preventDefault(); return; }
+        if (e.key === 'ArrowUp') { gridMove(0, -1); e.preventDefault(); return; }
+        if (e.key === 'ArrowDown') { gridMove(0, 1); e.preventDefault(); return; }
+        if (isShootKey(e) || e.key === 'Enter') { e.preventDefault(); if (started) shoot(); }
       }
-      arena.addEventListener('keydown',handleKey,false);
-      setTimeout(()=>arena.focus(),200);
+      arena.addEventListener('keydown', handleKey, false);
+      setTimeout(() => arena.focus(), 200);
 
-      cells.forEach((cell,i)=>{
-        cell.addEventListener('mouseenter',()=>{ selected=i; updateAimHighlight() });
-        cell.addEventListener('pointerdown',(e)=>{ e.preventDefault(); selected=i; updateAimHighlight() },{passive:false});
-        cell.addEventListener('click',()=>{ selected=i; updateAimHighlight() });
-        cell.addEventListener('keydown',(e)=>{ if(e.key==='Enter' || isShootKey(e)){ e.preventDefault(); selected=i; updateAimHighlight(); if(!busy && started) shoot() }});
+      cells.forEach((cell, i) => {
+        cell.addEventListener('mouseenter', () => { selected = i; updateAimHighlight(); });
+        cell.addEventListener('pointerdown', (e) => { e.preventDefault(); selected = i; updateAimHighlight(); }, { passive: false });
+        cell.addEventListener('click', () => { selected = i; updateAimHighlight(); });
+        cell.addEventListener('keydown', (e) => { if (e.key === 'Enter' || isShootKey(e)) { e.preventDefault(); selected = i; updateAimHighlight(); if (!busy && started) shoot(); } });
       });
 
-      function handleBallActivate(e){
-        if(e.type==='keydown'){
-          if(!(e.key==='Enter' || e.code==='Space' || e.key===' ' || e.key==='Spacebar')) return;
+      /* 안정적인 터치/포인터/키 입력 처리: ball activation */
+      function handleBallActivate(e) {
+        // 키 이벤트의 경우 발사키인지 확인
+        if (e.type === 'keydown') {
+          if (!(e.key === 'Enter' || e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar')) return;
           e.preventDefault();
-        } else { if(e.cancelable) e.preventDefault() }
-        if(started) shoot();
+        } else {
+          if (e.cancelable) e.preventDefault();
+        }
+        if (started) shoot();
       }
-      ball.addEventListener('pointerdown', handleBallActivate, { passive:false });
+      ball.addEventListener('pointerdown', handleBallActivate, { passive: false });
       ball.addEventListener('click', handleBallActivate);
-      ball.addEventListener('touchstart', handleBallActivate, { passive:false });
+      ball.addEventListener('touchstart', handleBallActivate, { passive: false });
       ball.addEventListener('keydown', handleBallActivate);
 
-      function normalizeStudentId(input){ if(!input) return null; const t=String(input).trim(); if(!/^\d{4,5}$/.test(t)) return null; const n=parseInt(t,10); if(n<10101||n>11330) return null; return String(n) }
-      async function fetchHighScoreSimple(id){ try{ const snap = await getDoc(doc(db,'scores',id)); if(!snap.exists()) return 0; const data = snap.data(); return (data && typeof data.high === 'number') ? data.high : 0 }catch(e){ console.error('fetchHighScoreSimple error', e); throw e } }
+      /* Firebase helpers used in-game */
+      function normalizeStudentId(input) {
+        if (!input) return null;
+        const t = String(input).trim();
+        if (!/^\d{4,5}$/.test(t)) return null;
+        const n = parseInt(t, 10);
+        if (n < 10101 || n > 11330) return null;
+        return String(n);
+      }
 
-      async function tryUpdateHighScore(id,candidate){
-        if(typeof candidate!=='number') candidate = Number(candidate);
-        if(candidate <= (bestScore || 0)) return;
-        const docRef = doc(db,'scores',id);
-        try{
-          await runTransaction(db, async (t)=>{
+      async function fetchHighScoreSimple(id) {
+        try {
+          const snap = await getDoc(doc(db, 'scores', id));
+          if (!snap.exists()) return 0;
+          const data = snap.data(); return (data && typeof data.high === 'number') ? data.high : 0;
+        } catch (e) { console.error('fetchHighScoreSimple error', e); throw e; }
+      }
+
+      async function tryUpdateHighScore(id, candidate) {
+        if (typeof candidate !== 'number') candidate = Number(candidate);
+        if (candidate <= (bestScore || 0)) return;
+        const docRef = doc(db, 'scores', id);
+        try {
+          await runTransaction(db, async (t) => {
             const snap = await t.get(docRef);
-            if(!snap.exists()){
-              t.set(docRef,{ high: candidate, updatedAt: new Date().toISOString() });
+            if (!snap.exists()) {
+              t.set(docRef, { high: candidate, updatedAt: new Date().toISOString() });
               bestScore = candidate;
             } else {
               const cur = snap.data().high || 0;
-              if(candidate > cur){
-                t.update(docRef,{ high: candidate, updatedAt: new Date().toISOString() });
+              if (candidate > cur) {
+                t.update(docRef, { high: candidate, updatedAt: new Date().toISOString() });
                 bestScore = candidate;
               }
             }
           });
           bestEl.textContent = bestScore;
-        }catch(e){
+        } catch (e) {
           console.error('transaction failed', e);
-          try{ await setDoc(docRef,{ high: candidate, updatedAt: new Date().toISOString() },{ merge:true }); bestScore = candidate; bestEl.textContent = bestScore }catch(e2){ console.error('fallback set failed', e2) }
+          try {
+            await setDoc(docRef, { high: candidate, updatedAt: new Date().toISOString() }, { merge: true });
+            bestScore = candidate; bestEl.textContent = bestScore;
+          } catch (e2) { console.error('fallback set failed', e2); }
         }
       }
 
-      startBtn.addEventListener('click', async ()=>{
+      // Start 버튼 처리
+      startBtn.addEventListener('click', async () => {
         const nid = normalizeStudentId(studentInput.value);
-        if(!nid){ alert('학번은 10101~11330 범위의 숫자로 입력하세요.'); studentInput.focus(); return }
+        if (!nid) { alert('학번은 10101~11330 범위의 숫자로 입력하세요.'); studentInput.focus(); return; }
         studentId = nid;
-        startBtn.disabled = true; studentInput.disabled = true;
+        startBtn.disabled = true;
+        studentInput.disabled = true;
         showMessage('기록을 불러오는 중...', '');
-        try{
+        try {
           const hs = await fetchHighScoreSimple(studentId);
           bestScore = hs || 0; bestEl.textContent = bestScore > 0 ? bestScore : '0';
           streak = 0; streakEl.textContent = 0; started = true;
           showMessage('게임 시작! ⚽️', 'goal');
-          setTimeout(()=>arena.focus(),120);
-        }catch(e){
+          setTimeout(() => arena.focus(), 120);
+        } catch (e) {
           console.error('Start fetch error', e);
           alert('기록을 불러오지 못했습니다. 콘솔을 확인하세요.');
-          startBtn.disabled = false; studentInput.disabled = false;
+          startBtn.disabled = false;
+          studentInput.disabled = false;
         }
       });
 
-    })();
+    })(); // IIFE end
 
-    /* Top20 realtime */
+    /* ========== Top20 실시간 구독 (순위·학번·연속골) ========== */
     const top10Body = document.getElementById('top10Body');
-    try{
-      const scoresCol = collection(db,'scores');
-      const q = query(scoresCol, orderBy('high','desc'), limit(20));
-      onSnapshot(q,(snap)=>{
-        if(!snap || snap.empty){ top10Body.innerHTML = `<tr class="empty"><td colspan="3">기록이 없습니다.</td></tr>`; return }
+    try {
+      const scoresCol = collection(db, 'scores');
+      const q = query(scoresCol, orderBy('high', 'desc'), limit(20));
+      onSnapshot(q, (snap) => {
+        if (!snap || snap.empty) {
+          top10Body.innerHTML = `<tr class="empty"><td colspan="3">기록이 없습니다.</td></tr>`;
+          return;
+        }
         const rows = [];
-        snap.forEach((docSnap)=>{ const data = docSnap.data() || {}; rows.push({ id: docSnap.id, high: (typeof data.high === 'number') ? data.high : 0 }); });
-        top10Body.innerHTML = rows.map((r,i)=>`<tr><td class="rankCell">${i+1}</td><td class="idCell">${r.id}</td><td class="scoreCell">${r.high}</td></tr>`).join('');
-      },(err)=>{ console.error('Top20 onSnapshot error', err); top10Body.innerHTML = `<tr class="empty"><td colspan="3">실시간 로딩 실패</td></tr>` })
-    }catch(e){ console.error('Top20 init error', e); top10Body.innerHTML = `<tr class="empty"><td colspan="3">Top20 초기화 실패</td></tr>` }
+        snap.forEach((docSnap) => {
+          const data = docSnap.data() || {};
+          rows.push({ id: docSnap.id, high: (typeof data.high === 'number') ? data.high : 0 });
+        });
+        top10Body.innerHTML = rows.map((r, i) => {
+          return `<tr>
+        <td class="rankCell">${i + 1}</td>
+        <td class="idCell">${r.id}</td>
+        <td class="scoreCell">${r.high}</td>
+      </tr>`;
+        }).join('');
+      }, (err) => {
+        console.error('Top20 onSnapshot error', err);
+        top10Body.innerHTML = `<tr class="empty"><td colspan="3">실시간 로딩 실패</td></tr>`;
+      });
+    } catch (e) {
+      console.error('Top20 init error', e);
+      top10Body.innerHTML = `<tr class="empty"><td colspan="3">Top20 초기화 실패</td></tr>`;
+    }
   </script>
 </body>
 </html>
