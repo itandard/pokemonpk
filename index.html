@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>포켓몬 페널티킥(홍정보)</title>
+  <title>포켓몬 페널티킥(홍정보) - 수정판</title>
   <style>
     :root {
       --field: #2e7d32;
@@ -30,7 +30,7 @@
 
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
       background: #0f1416;
       color: #f1f1f1;
       display: flex;
@@ -41,7 +41,7 @@
     }
 
     .wrap {
-      width: min(880px, 95vw);
+      width: min(980px, 96vw);
     }
 
     h1 {
@@ -114,6 +114,7 @@
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 10px 30px #0009;
+      touch-action: none; /* 기본 터치 제스처 방지(게임 화면내 제스처) */
     }
 
     .goal {
@@ -158,6 +159,7 @@
       transform: translateX(-50%);
       animation: idle 1.05s ease-in-out infinite alternate;
       z-index: 6;
+      will-change: transform;
     }
 
     @keyframes idle {
@@ -306,11 +308,8 @@
       border-radius: 34px/28px;
       overflow: hidden;
       background:
-        /* 세로 가는 굵은 패널 라인 (간격 넓게) */
         linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 100%),
-        /* 가로 가는 굵은 패널 라인 */
         linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 100%),
-        /* 더 촘촘한 미세 격자 (반투명) */
         linear-gradient(90deg, rgba(122, 94, 85, 0.10) 0 1px, transparent 1px),
         linear-gradient(0deg, rgba(122, 94, 85, 0.10) 0 1px, transparent 1px);
       background-size: 28px 100%, 100% 18px, 12px 100%, 100% 12px;
@@ -405,6 +404,7 @@
       justify-content: center;
       box-shadow: 0 8px 14px rgba(0, 0, 0, 0.5);
       z-index: 10;
+      touch-action: manipulation; /* 탭은 허용하되 스와이프 방지 */
     }
 
     .ball .shell {
@@ -464,7 +464,7 @@
       gap: 8px;
       pointer-events: auto;
       padding: var(--aimInnerPad);
-      z-index: 5;
+      z-index: 30; /* 공보다 위에 있어야 터치로 중앙 선택 가능 */
     }
 
     .aim .cell {
@@ -479,6 +479,9 @@
       justify-content: center;
       user-select: none;
       -webkit-user-select: none;
+      touch-action: manipulation;
+      min-height: 48px; /* 터치 영역 확보 */
+      min-width: 48px;
     }
 
     .aim .cell.active {
@@ -494,6 +497,7 @@
       transform: translate(-50%, -50%);
       font-weight: 900;
       color: #b40606bb;
+      font-size: 16px;
     }
 
     .aim .cell[data-dir="0"]::after {
@@ -571,7 +575,7 @@
       display: inline-flex !important;
     }
 
-    /* bottom centered Top10 table (순위 / 학번 / 연속골) */
+    /* bottom centered Top20 table (순위 / 학번 / 연속골) */
     .bottomTableWrap {
       width: 100%;
       display: flex;
@@ -580,7 +584,7 @@
     }
 
     table.top10 {
-      width: 420px;
+      width: 520px;
       border-collapse: collapse;
       text-align: center;
       background: #0f1416;
@@ -588,6 +592,7 @@
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.03);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      font-size: 14px;
     }
 
     table.top10 thead th {
@@ -600,21 +605,21 @@
 
     table.top10 thead th.rank {
       text-align: center;
-      width: 14%;
+      width: 10%;
     }
 
     table.top10 thead th.id {
       text-align: center;
-      width: 58%;
+      width: 60%;
     }
 
     table.top10 thead th.score {
       text-align: center;
-      width: 28%;
+      width: 30%;
     }
 
     table.top10 tbody td {
-      padding: 10px 6px;
+      padding: 8px 6px;
       font-weight: 700;
       color: #eaf7f9;
       border-top: 1px solid rgba(255, 255, 255, 0.02);
@@ -650,9 +655,61 @@
       text-align: center;
     }
 
-    @media (max-width:420px) {
+    @media (max-width: 720px) {
       table.top10 {
-        width: 92%;
+        width: 94%;
+      }
+    }
+
+    /* Mobile portrait adjustments to prevent center cell being blocked & scale down objects */
+    @media (max-width: 540px) and (orientation: portrait) {
+      :root {
+        --goalLeft: 8%;
+        --goalRight: 8%;
+        --goalTop: 9%;
+        --goalHeight: 34%;
+      }
+
+      .keeper {
+        width: 72px;
+        height: 86px;
+      }
+
+      .keeper .head {
+        width: 60px;
+        height: 50px;
+      }
+
+      .keeper .shell {
+        width: 60px;
+        height: 52px;
+      }
+
+      .kicker {
+        width: 64px;
+        height: 64px;
+        bottom: 9%;
+      }
+
+      .ball {
+        --d: 34px;
+        bottom: 12%;
+      }
+
+      .aim .cell {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      /* Ensure aim grid is above everything on small portrait */
+      .aim {
+        z-index: 60;
+      }
+
+      /* Slightly shrink messages so they don't overlap */
+      :root {
+        --msgW: 140px;
+        --msgH: 20px;
       }
     }
   </style>
@@ -660,9 +717,9 @@
 
 <body>
   <div class="wrap">
-    <h1>포켓몬 페널티킥 게임(장유고)</h1><br>
+    <h1>포켓몬 페널티킥 게임(장유고) — 수정판</h1><br>
     <p class="tip">PC : 방향키로 방향 고정 후 Space바 슛팅</p>
-    <p class="tip">스마트기기(가로모드) : 방향키 터치 후 몬스터볼 터치</p>
+    <p class="tip">스마트기기(가로/세로) : 조준(터치) 후 몬스터볼(터치) 또는 공의 탭</p>
     <p class="tip">학번 입력 → Start 클릭 → 기록경신</p><br>
 
     <div class="hud">
@@ -756,7 +813,7 @@
     initializeApp(firebaseConfig);
     const db = getFirestore();
 
-    /* ========== 게임 로직 (원본 흐름 유지) ========== */
+    /* ========== 게임 로직 (원본 흐름 유지, 중요 버그 수정 포함) ========== */
     (() => {
       const arena = document.getElementById('arena');
       const keeper = document.getElementById('keeper');
@@ -790,15 +847,9 @@
 
       function updateAimHighlight() { cells.forEach(el => el.classList.toggle('active', +el.dataset.dir === selected)); aimLabel.textContent = dirNames[selected]; }
       updateAimHighlight();
-      // ball 클릭/터치 이벤트 추가
-      ball.addEventListener('click', () => {
-        if (started) shoot();
-      });
 
-      ball.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // 터치 스크롤 방지
-        if (started) shoot();
-      }, { passive: false });
+      // ball 클릭/터치 이벤트 추가 - 아래에서 재정의
+      // ball.addEventListener... (대체됨 아래)
 
       function showMessage(text, type) { msg.textContent = text; msg.className = 'message show' + (type ? ' ' + type : ''); if (msgTimer) clearTimeout(msgTimer); msgTimer = setTimeout(() => { msg.classList.remove('show'); msgTimer = null; }, 1300); }
 
@@ -811,22 +862,28 @@
 
       function randomOther(except) { const pool = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(n => n !== except); return pool[Math.floor(Math.random() * pool.length)]; }
 
-      function shoot() {
+      async function shoot() {
         if (busy) return;
-        busy = true; kicker.classList.add('shoot');
+        busy = true;
+        kicker.classList.add('shoot');
+
+        // --- 중요한 수정: 현재 selected를 즉시 고정하여 "슛 중 변경" 영향 제거 ---
+        const targetSelected = selected;
 
         const goalRect = aimGrid.getBoundingClientRect(); const arenaRect = arena.getBoundingClientRect();
-        const col = selected % 3, row = Math.floor(selected / 3); const cellW = goalRect.width / 3, cellH = goalRect.height / 3;
+        const col = targetSelected % 3, row = Math.floor(targetSelected / 3); const cellW = goalRect.width / 3, cellH = goalRect.height / 3;
         const targetX = (goalRect.left - arenaRect.left) + col * cellW + cellW / 2;
         const targetY = (goalRect.top - arenaRect.top) + row * cellH + cellH / 2;
         const start = ball.getBoundingClientRect(); const sx = start.left - arenaRect.left + start.width / 2; const sy = start.top - arenaRect.top + start.height / 2;
-        const keeperPick = (Math.random() < 0.35) ? selected : randomOther(selected);
+
+        // 수비수(keeper)가 막을 위치 결정 - targetSelected 기준으로 계산 (selected가 변해도 영향 없음)
+        const keeperPick = (Math.random() < 0.35) ? targetSelected : randomOther(targetSelected);
 
         const kW = keeper.offsetWidth, kH = keeper.offsetHeight;
         const kpCol = keeperPick % 3, kpRow = Math.floor(keeperPick / 3);
         let kTargetX = (goalRect.left - arenaRect.left) + kpCol * cellW + cellW / 2 - kW / 2;
         let kTargetY = (goalRect.top - arenaRect.top) + kpRow * cellH + cellH / 2 - kH / 2;
-        if (keeperPick !== selected) {
+        if (keeperPick !== targetSelected) {
           const dx = Math.sign(kpCol - col), dy = Math.sign(kpRow - row), offset = 28;
           kTargetX += dx * offset; kTargetY += dy * offset;
           const gxMin = (goalRect.left - arenaRect.left) - kW * 0.12; const gxMax = (goalRect.left - arenaRect.left) + goalRect.width - kW * 0.88;
@@ -847,7 +904,8 @@
 
         const dur = 380;
         animateBall(sx, sy, targetX, targetY, dur, async () => {
-          const saved = (keeperPick === selected);
+          // --- 판정도 targetSelected 기준으로 --- (selected 대신 targetSelected 사용)
+          const saved = (keeperPick === targetSelected);
           if (saved) {
             streak = 0; streakEl.textContent = streak; showMessage('아쉽다! 막혔어요 ⚡️🥅', 'save');
           } else {
@@ -861,7 +919,17 @@
             }
           }
 
-          setTimeout(() => { kicker.classList.remove('shoot'); keeper.style.transition = ''; keeper.style.animation = ''; keeper.style.transform = 'translateX(-50%)'; placeKeeperHome(); ball.style.transition = 'transform .22s ease'; ball.style.transform = 'translate(0,0)'; setTimeout(() => { ball.style.transition = ''; busy = false; }, 240); }, 200);
+          // 애니메이션 초기 상태로 되돌리기
+          setTimeout(() => {
+            kicker.classList.remove('shoot');
+            keeper.style.transition = '';
+            keeper.style.animation = '';
+            keeper.style.transform = 'translateX(-50%)';
+            placeKeeperHome();
+            ball.style.transition = 'transform .22s ease';
+            ball.style.transform = 'translate(0,0)';
+            setTimeout(() => { ball.style.transition = ''; busy = false; }, 240);
+          }, 200);
         });
       }
 
@@ -869,12 +937,12 @@
       function isShootKey(e) { return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar'; }
       function handleKey(e) {
         if (busy) return;
-        if ((e.key.startsWith('Arrow') && e.repeat)) { e.preventDefault(); return; }
+        if ((e.key && e.key.startsWith && e.key.startsWith('Arrow') && e.repeat)) { e.preventDefault(); return; }
         if (e.key === 'ArrowLeft') { gridMove(-1, 0); e.preventDefault(); return; }
         if (e.key === 'ArrowRight') { gridMove(1, 0); e.preventDefault(); return; }
         if (e.key === 'ArrowUp') { gridMove(0, -1); e.preventDefault(); return; }
         if (e.key === 'ArrowDown') { gridMove(0, 1); e.preventDefault(); return; }
-        if (isShootKey(e)) { e.preventDefault(); if (started) shoot(); }
+        if (isShootKey(e) || e.key === 'Enter') { e.preventDefault(); if (started) shoot(); }
       }
       arena.addEventListener('keydown', handleKey, false);
       setTimeout(() => arena.focus(), 200);
@@ -885,6 +953,22 @@
         cell.addEventListener('click', () => { selected = i; updateAimHighlight(); });
         cell.addEventListener('keydown', (e) => { if (e.key === 'Enter' || isShootKey(e)) { e.preventDefault(); selected = i; updateAimHighlight(); if (!busy && started) shoot(); } });
       });
+
+      /* 안정적인 터치/포인터/키 입력 처리: ball activation */
+      function handleBallActivate(e) {
+        // 키 이벤트의 경우 발사키인지 확인
+        if (e.type === 'keydown') {
+          if (!(e.key === 'Enter' || e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar')) return;
+          e.preventDefault();
+        } else {
+          if (e.cancelable) e.preventDefault();
+        }
+        if (started) shoot();
+      }
+      ball.addEventListener('pointerdown', handleBallActivate, { passive: false });
+      ball.addEventListener('click', handleBallActivate);
+      ball.addEventListener('touchstart', handleBallActivate, { passive: false });
+      ball.addEventListener('keydown', handleBallActivate);
 
       /* Firebase helpers used in-game */
       function normalizeStudentId(input) {
@@ -956,11 +1040,12 @@
 
     })(); // IIFE end
 
-    /* ========== Top10 실시간 구독 (순위·학번·연속골) ========== */
+    /* ========== Top20 실시간 구독 (순위·학번·연속골) ========== */
     const top10Body = document.getElementById('top10Body');
     try {
       const scoresCol = collection(db, 'scores');
-      const q = query(scoresCol, orderBy('high', 'desc'), limit(10));
+      // 변경: limit(20)으로 TOP20
+      const q = query(scoresCol, orderBy('high', 'desc'), limit(20));
       onSnapshot(q, (snap) => {
         if (!snap || snap.empty) {
           top10Body.innerHTML = `<tr class="empty"><td colspan="3">기록이 없습니다.</td></tr>`;
@@ -984,7 +1069,7 @@
       });
     } catch (e) {
       console.error('Top10 init error', e);
-      top10Body.innerHTML = `<tr class="empty"><td colspan="3">Top10 초기화 실패</td></tr>`;
+      top10Body.innerHTML = `<tr class="empty"><td colspan="3">Top20 초기화 실패</td></tr>`;
     }
   </script>
 </body>
