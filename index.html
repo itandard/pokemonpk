@@ -960,7 +960,7 @@
     const top10Body = document.getElementById('top10Body');
     try {
       const scoresCol = collection(db, 'scores');
-      const q = query(scoresCol, orderBy('high', 'desc'), limit(10));
+      const q = query(scoresCol, orderBy('high', 'desc'), limit(30));
       onSnapshot(q, (snap) => {
         if (!snap || snap.empty) {
           top10Body.innerHTML = `<tr class="empty"><td colspan="3">기록이 없습니다.</td></tr>`;
